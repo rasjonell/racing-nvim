@@ -1,7 +1,6 @@
 package input
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -34,7 +33,6 @@ var axisMapping = map[uint16]byte{
 func (ae *AxisEvent) ParsedValue() uint32 {
 	switch ae.AxisType {
 	case AxisWheel:
-		fmt.Println(ae.RawValue)
 		return uint32((float64(ae.RawValue) / 65535.0 * 900))
 
 	case AxisBreak:
@@ -51,10 +49,31 @@ func (ae *AxisEvent) ParsedValue() uint32 {
 	}
 }
 
-// HandleAxisMessage func
-func HandleAxisMessage(e Event) byte {
-	ae := AxisEvent{axisMapping[e.Code], e.Value}
-	_ = ae
+var prevWheelValue uint32
+var distanceThreshold uint32 = 10
 
-	return 1
+// HandleAxisMessage func
+func HandleAxisMessage(e Event) (shouldSend bool, newByte byte) {
+	ae := AxisEvent{axisMapping[e.Code], e.Value}
+
+	switch ae.AxisType {
+	case AxisWheel:
+		parsed := ae.ParsedValue()
+		distance := uint32(math.Abs(float64(prevWheelValue) - float64(parsed)))
+		if distance >= distanceThreshold {
+			newByte = 3 // Decrease The Char
+			if parsed > prevWheelValue {
+				newByte = 4 // Increase The Char
+			}
+
+			prevWheelValue = ae.ParsedValue()
+
+			return true, newByte
+		}
+
+	default:
+		newByte = 0 // Unknown Axis Event
+	}
+
+	return false, 0
 }
