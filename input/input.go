@@ -108,18 +108,17 @@ func ListenToEvents(ch chan<- byte) {
 		}
 
 		var newByte byte
+		var shouldSend bool
 		switch event.Type {
 		case EventKey:
-			newByte = HandleButtonMessage(event)
+			shouldSend, newByte = HandleButtonMessage(event)
 
 		case EventAbs:
-			newByte = HandleAxisMessage(event)
-
-		default:
-			newByte = 3
-			fmt.Printf("Unknown Event --> %+v\n", event)
+			shouldSend, newByte = HandleAxisMessage(event)
 		}
 
-		ch <- newByte
+		if shouldSend {
+			ch <- newByte
+		}
 	}
 }
